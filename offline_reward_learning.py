@@ -97,6 +97,44 @@ def learn_reward(
     # Hint: You may find torch.cat useful.
     # Hint: You may also find unsqueeze useful. For example, if x is the tensor [1,2,3] (which has shape [3]), then x.unsqueeze(0) returns [[1,2,3]] (which has shape [1,3])
 
+    print("===== Training Run ======")
+    training_data = list(zip(training_inputs,training_outputs))
+    for epoch in range(num_iter):
+        np.random.shuffle(training_data)
+        cumulative_loss = 0.0
+        num_correct = 0
+
+        for (traj_i, traj_j), label in training_data:
+            # trajectories arrive as lists of 4-dim arrays -> [T,4] tensors
+            traj_i = torch.from_numpy(np.array(traj_i)).float().to(device)
+            traj_j = torch.from_numpy(np.array(traj_j)).float().to(device)
+
+            # cross entropy loss
+            label = torch.tensor([label]).long().to(device)
+
+            optimizer.zero_grad(set_to_none=True)
+
+            # calculate returns from each trajectory from the reward network
+            return_i = reward_network.predict_return(traj_i)
+            return_j = reward_network.predict_return(traj_j)
+
+            outputs = torch.cat(
+                (return_i.unsqueeze(0),return_j.unsqueeze(0))
+            ).unsqueeze(0)
+
+            loss = loss_criterion(outputs,label)
+
+            loss.backward()
+
+            optimizer.step()
+
+            cumulative_loss += loss.item()
+            num_correct += int(outputs.argmax(dim=1).item() == label.item())
+
+
+        if epoch % 10 == 0 or epoch == (num_iter - 1):
+            print(f"epoch: {epoch}, avg loss: {(cumulative_loss/len(training_data))}, training accuracy: {num_correct/ len(training_data)}")
+
     # After training we save the reward function weights
     print("checkpointing")
     torch.save(reward_net.state_dict(), checkpoint_dir)

@@ -50,6 +50,9 @@ if __name__ == "__main__":
         "--checkpoint", type=str, default="", help="pretrained policy weights"
     )
     parser.add_argument("--num_rollouts", type=int, default=1)
+    parser.add_argument(
+        "--plot_dir", type=str, default="", help="plot avg return over all checkpoints in this dir"
+    )
 
     args = parser.parse_args()
 
@@ -62,11 +65,34 @@ if __name__ == "__main__":
     hidden_sizes = [32]
     policy = mlp(sizes=[obs_dim] + hidden_sizes + [n_acts])
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    policy.load_state_dict(torch.load(checkpoint))
 
-    returns = 0
-    for i in range(args.num_rollouts):
-        _, cum_ret = generate_rollout(policy, env, rendering=args.render)
-        print("cumulative return", cum_ret)
-        returns += cum_ret
-    print("average return", returns / args.num_rollouts)
+    if args.plot_dir:
+        import os
+
+        num_checkpoints = len(os.listdir(args.plot_dir))
+        avg_returns = []
+        for i in range(num_checkpoints):
+            policy.load_state_dict(
+                torch.load(args.plot_dir + "/policy_checkpoint" + str(i) + ".params")
+            )
+            rets = [
+                generate_rollout(policy, env)[1] for _ in range(args.num_rollouts)
+            ]
+            print("checkpoint", i, "average return", np.mean(rets))
+            avg_returns.append(np.mean(rets))
+
+        plt.plot(range(num_checkpoints), avg_returns)
+        plt.xlabel("policy checkpoint")
+        plt.ylabel("average return")
+        plt.title(args.env_name + " (" + str(args.num_rollouts) + " rollouts each)")
+        plt.savefig("learning_curve.png", dpi=150, bbox_inches="tight")
+        print("saved learning_curve.png")
+    else:
+        policy.load_state_dict(torch.load(checkpoint))
+
+        returns = 0
+        for i in range(args.num_rollouts):
+            _, cum_ret = generate_rollout(policy, env, rendering=args.render)
+            print("cumulative return", cum_ret)
+            returns += cum_ret
+        print("average return", returns / args.num_rollouts)

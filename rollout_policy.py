@@ -56,7 +56,7 @@ if __name__ == "__main__":
     checkpoint = args.checkpoint
 
     # make core of policy network
-    env = gym.make(args.env_name)
+    env = gym.make(args.env_name, render_mode="human" if args.render else None)
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
     hidden_sizes = [32]

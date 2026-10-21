@@ -24,13 +24,22 @@ class Net(nn.Module):
     ##TODO Define the reward network architecture and functionality
     # Be sure to implement both __init__() and predict_reward()
 
-    def __init__(self):
+    def __init__(self,obs_dim=4,hidden_sizes=[32,32]):
         super().__init__()
         # TODO define network architecture.
         # Feel free to use the mlp helper function above or construct the network and forward() manually like you did in assignment 1.
         # Hint: states in cartpole are 4-dimensional (x,xdot,theta,thetadot)
         # https://www.gymlibrary.dev/environments/classic_control/cart_pole/
+        self.reward_net = mlp(sizes=[obs_dim] + hidden_sizes + [1])
+
+    def forward(self,x):
+        # per state reward -> takes state of shape [T,4] , returns rewards of shape [T,1]
+        return self.reward_net(x)
 
     def predict_return(self, traj):
         """calculate return (cumulative reward) of a trajectory (could be any number of timesteps)"""
         # TODO should take in a trajectory and output a scalar cumulative reward estimate
+        # self(traj) -> score all T shape in (1) batched pass -> [T,1]
+        rewards = self(traj)
+        # sum over the timesteps. keep it as a tensor
+        return torch.sum(rewards)

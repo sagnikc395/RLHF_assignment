@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "gymnasium>=1.4.0",
+    "gymnasium[classic-control]>=1.4.0",
     "matplotlib>=3.11.2",
     "torch>=2.14.1",
 ]

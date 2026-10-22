@@ -51,7 +51,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_rollouts", type=int, default=1)
     parser.add_argument(
-        "--plot_dir", type=str, default="", help="plot avg return over all checkpoints in this dir"
+        "--plot_dir",
+        type=str,
+        default="",
+        help="plot avg return over all checkpoints in this dir",
     )
 
     args = parser.parse_args()
@@ -75,9 +78,7 @@ if __name__ == "__main__":
             policy.load_state_dict(
                 torch.load(args.plot_dir + "/policy_checkpoint" + str(i) + ".params")
             )
-            rets = [
-                generate_rollout(policy, env)[1] for _ in range(args.num_rollouts)
-            ]
+            rets = [generate_rollout(policy, env)[1] for _ in range(args.num_rollouts)]
             print("checkpoint", i, "average return", np.mean(rets))
             avg_returns.append(np.mean(rets))
 

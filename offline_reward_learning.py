@@ -98,7 +98,7 @@ def learn_reward(
     # Hint: You may also find unsqueeze useful. For example, if x is the tensor [1,2,3] (which has shape [3]), then x.unsqueeze(0) returns [[1,2,3]] (which has shape [1,3])
 
     print("===== Training Run ======")
-    training_data = list(zip(training_inputs,training_outputs))
+    training_data = list(zip(training_inputs, training_outputs))
     for epoch in range(num_iter):
         np.random.shuffle(training_data)
         cumulative_loss = 0.0
@@ -119,10 +119,10 @@ def learn_reward(
             return_j = reward_network.predict_return(traj_j)
 
             outputs = torch.cat(
-                (return_i.unsqueeze(0),return_j.unsqueeze(0))
+                (return_i.unsqueeze(0), return_j.unsqueeze(0))
             ).unsqueeze(0)
 
-            loss = loss_criterion(outputs,label)
+            loss = loss_criterion(outputs, label)
 
             loss.backward()
 
@@ -131,9 +131,10 @@ def learn_reward(
             cumulative_loss += loss.item()
             num_correct += int(outputs.argmax(dim=1).item() == label.item())
 
-
         if epoch % 10 == 0 or epoch == (num_iter - 1):
-            print(f"epoch: {epoch}, avg loss: {(cumulative_loss/len(training_data))}, training accuracy: {num_correct/ len(training_data)}")
+            print(
+                f"epoch: {epoch}, avg loss: {(cumulative_loss / len(training_data))}, training accuracy: {num_correct / len(training_data)}"
+            )
 
     # After training we save the reward function weights
     print("checkpointing")

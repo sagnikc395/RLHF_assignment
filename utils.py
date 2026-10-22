@@ -24,7 +24,7 @@ class Net(nn.Module):
     ##TODO Define the reward network architecture and functionality
     # Be sure to implement both __init__() and predict_reward()
 
-    def __init__(self,obs_dim=4,hidden_sizes=[32,32]):
+    def __init__(self, obs_dim=4, hidden_sizes=[32, 32]):
         super().__init__()
         # TODO define network architecture.
         # Feel free to use the mlp helper function above or construct the network and forward() manually like you did in assignment 1.
@@ -32,7 +32,7 @@ class Net(nn.Module):
         # https://www.gymlibrary.dev/environments/classic_control/cart_pole/
         self.reward_net = mlp(sizes=[obs_dim] + hidden_sizes + [1])
 
-    def forward(self,x):
+    def forward(self, x):
         # per state reward -> takes state of shape [T,4] , returns rewards of shape [T,1]
         return self.reward_net(x)
 

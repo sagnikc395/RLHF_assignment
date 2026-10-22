@@ -14,3 +14,9 @@ cumulative return 17.0
 cumulative return 68.0
 cumulative return 86.0
 average return 69.2
+
+Code for the avg plot across all 
+
+```shell
+uv run rollout_policy.py --plot_dir ./rlhf --env CartPole-v1 --num_rollouts 5
+```

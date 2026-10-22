@@ -1,8 +1,18 @@
 # Homework 3 for CS 690S AI Alignment
 
-You will be using the conda environment that you created in assignment 1. After cloning this repository, navigate to it and then run:
+<!--~You will be using the conda environment that you created in assignment 1. After cloning this repository, navigate to it and then run:
 ```
 conda activate imitation_learning
+```~-->
+
+- Setup virtual env as 
+```shell 
+uv venv 
+source .venv/bin/activate
+```
+- Install dependencies as 
+```shell
+uv sync 
 ```
 
 ## Assignment
@@ -18,7 +28,7 @@ Now look through the code in ```vpg.py``` to get an idea of what is going on. We
 
 Run 
 ```
-python vpg.py --epochs 10 --checkpoint --checkpoint_dir ./synthetic --render
+uv run vpg.py --epochs 10 --checkpoint --checkpoint_dir ./synthetic --render
 ```
 
 This will generate 10 and save the RL policy after 10 checkpoints on the CartPole environment. It will render the first episode of each epoch so you can see its performance visually. We won't train the RL policy to convergence, but if you ran it for more than 10 checkpoints it would eventually reach a return of 200 (the ground truth cartpole reward function is +1 every time step that the cart stays on the track and the pole stays roughly upright). You can learn more about CartPole here: https://www.gymlibrary.dev/environments/classic_control/cart_pole/
@@ -35,7 +45,7 @@ In ```offline_reward_learning.py``` you will use the saved checkpoints from Part
 Train a reward function using preferences over trajectories labeled using ground-truth rewards
 
 ```
-python .\offline_reward_learning.py
+uv run ./offline_reward_learning.py
 ```
 
 This should save the learned reward function weights in a file called ```reward.params```.
@@ -46,7 +56,7 @@ This should save the learned reward function weights in a file called ```reward.
 Train RL policy on learned reward function
 
 ```
-python vpg.py --epochs 50 --checkpoint --reward reward.params --checkpoint_dir rlhf
+uv run vpg.py --epochs 50 --checkpoint --reward reward.params --checkpoint_dir rlhf
 ```
 
 This will run for 50 epochs and checkpoint after each epoch. You may need to run a little longer, but you should be able to get close to episode lengths of 200 which corresonds to optimal performance for this task.
@@ -55,26 +65,32 @@ Let's now evaluate the learned RLHF policy and compare with the performance of t
 
 To estimate the expected return (via rollouts) of your RLHF policy, run the command below and fill in the appropriate final checkpoint number for XX (49 if you ran for 50 epochs)
 ```
-python rollout_policy.py --checkpoint ./rlhf/policy_checkpointXX.params --num_rollouts 5 --render
+uv run rollout_policy.py --checkpoint ./rlhf/policy_checkpointXX.params --num_rollouts 5 --render
 ```
 
 Report average performance.
 
 Now, evaluate final checkpoint that was used to generate the trajectories for the training preference dataset:
 ```
-python rollout_policy.py --checkpoint ./synthetic/policy_checkpoint9.params --num_rollouts 5 --render
+uv run rollout_policy.py --checkpoint ./synthetic/policy_checkpoint9.params --num_rollouts 5 --render
 ```
 
 Report the average performance.
 
 Finally, edit rollout_policy.py and use matplotlib to generate a line graph of the average performance across all 50 checkpoints for your RL policy and include it in your writeup.
 
+Code for the generation of the plot is 
+```shell
+uv run rollout_policy.py --plot_dir ./rlhf --env CartPole-v1 --num_rollouts 5
+```
+
 Now answer the following questions: (1) Was your RLHF method able to learn a better policy than the best policy used to collect training data? (2) Why is it possible to learn a policy much better than the best trajectory in the training data? (3) Explain how RLHF is different from Inverse RL or behavioral cloning. (4) What would have happened if you ran Inverse RL or behavioral cloning on the same trajectories used for RLHF?
+
+ 
 
 ## Submission.
 
 Prepare a PDF report with your answers to the questions (preferably typeset in LaTeX) and submit the PDF and code separately on Gradescope under the respective submissions.
 
 ### Acknowledgement
-Based on an assignment originally created by Daniel S. Brown. 
-
+Based on an assignment originally created by Daniel S. Brown.

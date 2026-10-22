@@ -81,7 +81,7 @@ Finally, edit rollout_policy.py and use matplotlib to generate a line graph of t
 
 Code for the generation of the plot is 
 ```shell
-uv run rollout_policy.py --plot_dir ./rlhf --env CartPole-v1 --num_rollouts 5
+uv run rollout_policy.py --plot_dir ./rlhf --env CartPole-v0 --num_rollouts 5
 ```
 
 Now answer the following questions: (1) Was your RLHF method able to learn a better policy than the best policy used to collect training data? (2) Why is it possible to learn a policy much better than the best trajectory in the training data? (3) Explain how RLHF is different from Inverse RL or behavioral cloning. (4) What would have happened if you ran Inverse RL or behavioral cloning on the same trajectories used for RLHF?

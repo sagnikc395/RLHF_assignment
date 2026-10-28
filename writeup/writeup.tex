@@ -42,21 +42,26 @@ Measured performance (5 rollouts each, ground-truth return on \texttt{CartPole-v
 200 is the maximum achievable):
 
 \begin{center}
-\begin{tabular}{lc}
+\begin{tabular}{lcc}
 \toprule
-Policy & Average ground-truth return \\
+Policy & 5 rollouts & 20 rollouts \\
 \midrule
-Best demonstrator (\texttt{synthetic/policy\_checkpoint9}) & 69.2 \\
-RLHF policy (\texttt{rlhf/policy\_checkpoint49}) & \textbf{163.0} \\
+Best demonstrator (\texttt{synthetic/policy\_checkpoint9}) & 69.2 & 35.2 \\
+RLHF policy (\texttt{rlhf/policy\_checkpoint49}) & \textbf{163.0} & --- \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Averaging over 20 rollouts instead of 5, the demonstrator checkpoints score roughly
-15--60 (checkpoint 9, the best of them, averages $35.2$). The ten trajectories that actually
-enter the preference dataset returned $[30, 62, 15, 34, 14, 36, 71, 22, 65, 90]$, so the best
-demonstration the reward model ever saw was 90 steps; the best single demonstrator rollout
-observed anywhere in these experiments was 115 steps. The learning curve of the RLHF policy over all 50 checkpoints is shown in
+\noindent Both columns are averages of the ground-truth return over independent rollouts of the
+\emph{same} policy; the demonstrator's two numbers differ only because a plain policy gradient at
+this stage of training is high-variance, so 5 rollouts is a noisy estimate. The 5-rollout column
+is the protocol the assignment specifies, and is the one quoted below; the 20-rollout column is
+reported because it is the more reliable estimate, and it only widens the gap in favour of RLHF.
+
+The ten trajectories that actually enter the preference dataset returned
+30, 62, 15, 34, 14, 36, 71, 22, 65 and 90 steps respectively, so the best demonstration the
+reward model ever saw was 90 steps; the best single demonstrator rollout observed anywhere in these experiments was
+115 steps. The learning curve of the RLHF policy over all 50 checkpoints is shown in
 Figure~\ref{fig:curve}.
 
 \begin{figure}[h]
@@ -96,18 +101,29 @@ reward function generalises outside the support of the demonstrations.
   \item \textbf{Preferences are relative, and the ranking carries directional information.}
   A label ``$\tau_i \succ \tau_j$'' does not say ``imitate $\tau_i$''; it says ``move in the
   direction that separates $\tau_i$ from $\tau_j$''. Pairs drawn from checkpoints of different
-  quality tell the reward network which states distinguish better behaviour from worse (pole
-  near upright, cart near centre, small angular velocity). Extrapolating that trend \emph{past}
+  quality tell the reward network which states distinguish better behaviour from worse.
+  Extrapolating that trend \emph{past}
   the best demonstration is the natural continuation of the gradient it encodes --- the same
   argument as in T-REX (Brown et al., \emph{Extrapolating Beyond Suboptimal Demonstrations via
   Inverse RL from Observations}).
   \item \textbf{The reward decomposes over states, so returns extrapolate over time.}
-  Since $\hat{J}_\theta(\tau) = \sum_t r_\theta(s_t)$ with $r_\theta$ positive on ``good''
-  states, a policy that stays in good states \emph{longer} than any demonstrator automatically
-  gets a higher learned return. The reward model never caps out at the best observed return;
-  longer balancing keeps accumulating reward, so the RL optimiser is actively rewarded for
-  surpassing the data. Credit assignment also improves: a per-state reward is a much denser,
-  better-shaped signal than a single trajectory-level score.
+  Since $\hat{J}_\theta(\tau) = \sum_t r_\theta(s_t)$, and the learned $r_\theta$ turns out to be
+  positive at essentially every state the agent visits, each additional timestep of survival adds
+  reward. A policy that balances \emph{longer} than any demonstrator therefore automatically earns
+  a higher learned return: the reward model never caps out at the best observed return, so the RL
+  optimiser is actively rewarded for surpassing the data. Probing the trained network confirms
+  this is the operative mechanism --- over the states visited by the ten demonstrators,
+  $r_\theta$ has mean $0.57$ and is positive on $91\%$ of them, and on a sweep of the
+  $(x,\theta)$ plane it stays in $[0.31, 1.24]$ and is positive everywhere.
+  \item \textbf{The reward model does not need to recover the true reward's \emph{shape}.}
+  Notably, $r_\theta$ is \emph{not} a recovered copy of the ground-truth reward: it does not rank
+  states by how upright the pole is (its correlation with $|\theta|$ over that sweep is
+  $\approx 0$, and it scores a tilted, off-centre state slightly \emph{higher} than a centred
+  upright one). What the preferences taught it is the much cruder fact that occupying states at all
+  is worth roughly $+0.7$ to $+1.2$ per step --- which, because CartPole terminates on failure, is
+  behaviourally equivalent to the true reward for the purpose of optimisation. This is a useful
+  reminder that a reward model can induce optimal behaviour while still being a poor
+  \emph{explanation} of what the ground-truth objective rewards.
   \item \textbf{RL supplies its own fresh experience.} The policy-gradient learner interacts
   with the real environment and generates states the demonstrators never visited. It is not
   limited to the training distribution the way a purely offline imitation method is; it only

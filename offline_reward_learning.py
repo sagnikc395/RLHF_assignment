@@ -138,7 +138,7 @@ def learn_reward(
 
     # After training we save the reward function weights
     print("checkpointing")
-    torch.save(reward_net.state_dict(), checkpoint_dir)
+    torch.save(reward_network.state_dict(), checkpoint_dir)
     print("finished training")
 
 

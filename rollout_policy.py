@@ -70,13 +70,19 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     if args.plot_dir:
+        import glob
         import os
 
-        num_checkpoints = len(os.listdir(args.plot_dir))
+        # only count actual checkpoint files (a stray .DS_Store would skew len(os.listdir))
+        num_checkpoints = len(
+            glob.glob(os.path.join(args.plot_dir, "policy_checkpoint*.params"))
+        )
         avg_returns = []
         for i in range(num_checkpoints):
             policy.load_state_dict(
-                torch.load(args.plot_dir + "/policy_checkpoint" + str(i) + ".params")
+                torch.load(
+                    os.path.join(args.plot_dir, "policy_checkpoint" + str(i) + ".params")
+                )
             )
             rets = [generate_rollout(policy, env)[1] for _ in range(args.num_rollouts)]
             print("checkpoint", i, "average return", np.mean(rets))

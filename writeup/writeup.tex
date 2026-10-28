@@ -13,7 +13,7 @@
 \begin{document}
 \maketitle
 
-\section{Setup and results}
+\section{Setup}
 
 The pipeline follows the three parts of the assignment:
 
@@ -24,10 +24,11 @@ The pipeline follows the three parts of the assignment:
   \item \textbf{Preference-based reward learning.} One trajectory was rolled out from each
   checkpoint, and 20 random pairs of those trajectories were labelled by \emph{ground-truth}
   return (the higher-return trajectory is preferred). A two-hidden-layer MLP reward network
-  $r_\theta : \mathbb{R}^4 \to \mathbb{R}$ (\texttt{utils.py}, \texttt{Net}) scores each state;
-  the predicted return of a trajectory is $\hat{J}_\theta(\tau) = \sum_{s_t \in \tau} r_\theta(s_t)$.
-  The two predicted returns of a pair are used as the logits of a two-way
-  \texttt{CrossEntropyLoss}, i.e.\ the Bradley--Terry model
+  $r_\theta : \mathbb{R}^4 \to \mathbb{R}$ (\texttt{utils.py}, \texttt{Net}, hidden sizes
+  $32{-}32$, ReLU) scores each state; the predicted return of a trajectory is
+  $\hat{J}_\theta(\tau) = \sum_{s_t \in \tau} r_\theta(s_t)$. The two predicted returns of a
+  pair are used as the logits of a two-way \texttt{CrossEntropyLoss}, i.e.\ the
+  Bradley--Terry model
   \[
     P_\theta(\tau_i \succ \tau_j) \;=\; \frac{\exp \hat{J}_\theta(\tau_i)}
     {\exp \hat{J}_\theta(\tau_i) + \exp \hat{J}_\theta(\tau_j)},
@@ -38,16 +39,18 @@ The pipeline follows the three parts of the assignment:
   seen by the learner), checkpointing into \texttt{rlhf/}.
 \end{enumerate}
 
-Measured performance (5 rollouts each, ground-truth return on \texttt{CartPole-v0}, where
-200 is the maximum achievable):
+\section{Results}
+
+Measured performance (ground-truth return on \texttt{CartPole-v0}, where 200 is the maximum
+achievable):
 
 \begin{center}
 \begin{tabular}{lcc}
 \toprule
 Policy & 5 rollouts & 20 rollouts \\
 \midrule
-Best demonstrator (\texttt{synthetic/policy\_checkpoint9}) & 69.2 & 35.2 \\
-RLHF policy (\texttt{rlhf/policy\_checkpoint49}) & \textbf{163.0} & --- \\
+Best demonstrator (\texttt{synthetic/policy\_checkpoint9}) & 69.2 & 40.8 \\
+RLHF policy (\texttt{rlhf/policy\_checkpoint49}) & \textbf{163.0} & \textbf{169.2} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -55,14 +58,17 @@ RLHF policy (\texttt{rlhf/policy\_checkpoint49}) & \textbf{163.0} & --- \\
 \noindent Both columns are averages of the ground-truth return over independent rollouts of the
 \emph{same} policy; the demonstrator's two numbers differ only because a plain policy gradient at
 this stage of training is high-variance, so 5 rollouts is a noisy estimate. The 5-rollout column
-is the protocol the assignment specifies, and is the one quoted below; the 20-rollout column is
-reported because it is the more reliable estimate, and it only widens the gap in favour of RLHF.
+is the protocol the assignment specifies; the 20-rollout column is reported because it is the
+more reliable estimate, and it only widens the gap in favour of RLHF. Note that the extra
+rollouts pull the demonstrator \emph{down} (69.2 to 40.8) while leaving the RLHF policy
+essentially unchanged (163.0 to 169.2): the demonstrator occasionally gets a lucky long episode,
+whereas the RLHF policy is consistently good.
 
 The ten trajectories that actually enter the preference dataset returned
 30, 62, 15, 34, 14, 36, 71, 22, 65 and 90 steps respectively, so the best demonstration the
-reward model ever saw was 90 steps; the best single demonstrator rollout observed anywhere in these experiments was
-115 steps. The learning curve of the RLHF policy over all 50 checkpoints is shown in
-Figure~\ref{fig:curve}.
+reward model ever saw was 90 steps; the best single demonstrator rollout observed anywhere in
+these experiments was 115 steps. The learning curve of the RLHF policy over all 50 checkpoints
+is shown in Figure~\ref{fig:curve}.
 
 \begin{figure}[h]
   \centering
@@ -83,8 +89,9 @@ Figure~\ref{fig:curve}.
 to collect training data?}
 
 Yes, and by a wide margin. The best demonstrator (checkpoint 9 of the synthetic run) averages
-$69.2$ over 5 rollouts ($35.2$ over 20 rollouts), while the final RLHF policy averages
-$163.0$ over the same protocol --- roughly a $2.4\times$ improvement. The RLHF policy also
+$69.2$ over 5 rollouts ($40.8$ over 20 rollouts), while the final RLHF policy averages
+$163.0$ over 5 rollouts and $169.2$ over 20 --- roughly a $2.4\times$ improvement on the
+5-rollout protocol, and over $4\times$ on the more reliable 20-rollout estimate. The RLHF policy also
 beats the best \emph{single trajectory} in the preference dataset: no demonstration there
 exceeded $90$ steps, and no demonstrator rollout observed anywhere exceeded $115$, whereas the
 best RLHF checkpoints average $175$--$178$ out of a maximum of
@@ -102,27 +109,26 @@ reward function generalises outside the support of the demonstrations.
   A label ``$\tau_i \succ \tau_j$'' does not say ``imitate $\tau_i$''; it says ``move in the
   direction that separates $\tau_i$ from $\tau_j$''. Pairs drawn from checkpoints of different
   quality tell the reward network which states distinguish better behaviour from worse.
-  Extrapolating that trend \emph{past}
-  the best demonstration is the natural continuation of the gradient it encodes --- the same
-  argument as in T-REX (Brown et al., \emph{Extrapolating Beyond Suboptimal Demonstrations via
-  Inverse RL from Observations}).
+  Extrapolating that trend \emph{past} the best demonstration is the natural continuation of
+  the gradient it encodes --- the same argument as in T-REX (Brown et al., \emph{Extrapolating
+  Beyond Suboptimal Demonstrations via Inverse RL from Observations}).
   \item \textbf{The reward decomposes over states, so returns extrapolate over time.}
   Since $\hat{J}_\theta(\tau) = \sum_t r_\theta(s_t)$, and the learned $r_\theta$ turns out to be
   positive at essentially every state the agent visits, each additional timestep of survival adds
   reward. A policy that balances \emph{longer} than any demonstrator therefore automatically earns
   a higher learned return: the reward model never caps out at the best observed return, so the RL
   optimiser is actively rewarded for surpassing the data. Probing the trained network confirms
-  this is the operative mechanism --- over the states visited by the ten demonstrators,
-  $r_\theta$ has mean $0.57$ and is positive on $91\%$ of them, and on a sweep of the
-  $(x,\theta)$ plane it stays in $[0.31, 1.24]$ and is positive everywhere.
+  this is the operative mechanism --- over the states visited by a fresh set of demonstrator
+  rollouts, $r_\theta$ has mean $0.64$ and is positive on $97\%$ of them, and on a grid sweep of
+  the $(x,\theta)$ plane ($x \in [-2,2]$, $\theta \in [-0.2,0.2]$, velocities zero) it stays in
+  $[0.34, 1.15]$ and is positive everywhere.
   \item \textbf{The reward model does not need to recover the true reward's \emph{shape}.}
   Notably, $r_\theta$ is \emph{not} a recovered copy of the ground-truth reward: it does not rank
   states by how upright the pole is (its correlation with $|\theta|$ over that sweep is
-  $\approx 0$, and it scores a tilted, off-centre state slightly \emph{higher} than a centred
-  upright one). What the preferences taught it is the much cruder fact that occupying states at all
-  is worth roughly $+0.7$ to $+1.2$ per step --- which, because CartPole terminates on failure, is
-  behaviourally equivalent to the true reward for the purpose of optimisation. This is a useful
-  reminder that a reward model can induce optimal behaviour while still being a poor
+  $\approx 0$). What the preferences taught it is the much cruder fact that occupying states at
+  all is worth roughly $+0.3$ to $+1.2$ per step --- which, because CartPole terminates on
+  failure, is behaviourally equivalent to the true reward for the purpose of optimisation. This
+  is a useful reminder that a reward model can induce optimal behaviour while still being a poor
   \emph{explanation} of what the ground-truth objective rewards.
   \item \textbf{RL supplies its own fresh experience.} The policy-gradient learner interacts
   with the real environment and generates states the demonstrators never visited. It is not
